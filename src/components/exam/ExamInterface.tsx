@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,22 +66,6 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
     }
   };
 
-  useEffect(() => {
-    if (loading) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          handleSubmitExam();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [loading]);
-
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -137,20 +122,6 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
 
     return () => clearInterval(timer);
   }, [loading]);
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleAnswerSelect = (choice: string) => {
-    setAnswers({
-      ...answers,
-      [questions[currentQuestionIndex].id]: choice
-    });
-  };
 
   if (loading) {
     return (
