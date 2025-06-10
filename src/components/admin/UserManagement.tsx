@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +49,15 @@ const UserManagement = () => {
     }
   };
 
+  const hashPassword = async (password: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return btoa(hashHex);
+  };
+
   const handleAddUser = async () => {
     if (!formData.username || !formData.password) {
       toast({
@@ -61,8 +69,8 @@ const UserManagement = () => {
     }
 
     try {
-      // Simple password hashing - in production, use proper bcrypt
-      const passwordHash = btoa(formData.password);
+      // Hash the password using SHA-256
+      const passwordHash = await hashPassword(formData.password);
       
       const { error } = await supabase
         .from('users')

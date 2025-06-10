@@ -11,55 +11,55 @@ export type Database = {
     Tables: {
       exam_categories: {
         Row: {
-          created_at: string
+          created_at: string | null
           description: string | null
           id: number
           name: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
-          id?: never
+          id?: number
           name: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
-          id?: never
+          id?: number
           name?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       exam_results: {
         Row: {
           answers_data: Json
-          created_at: string
+          created_at: string | null
           id: number
           question_count: number
           score: number
           total_questions: number
-          user_id: number
+          user_id: number | null
         }
         Insert: {
           answers_data: Json
-          created_at?: string
-          id?: never
+          created_at?: string | null
+          id?: number
           question_count: number
           score: number
           total_questions: number
-          user_id: number
+          user_id?: number | null
         }
         Update: {
           answers_data?: Json
-          created_at?: string
-          id?: never
+          created_at?: string | null
+          id?: number
           question_count?: number
           score?: number
           total_questions?: number
-          user_id?: number
+          user_id?: number | null
         }
         Relationships: [
           {
@@ -79,11 +79,11 @@ export type Database = {
           choice_c: string
           choice_d: string
           correct_answer: string
-          created_at: string
+          created_at: string | null
           explanation: string | null
           id: number
           question_text: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           category_id?: number | null
@@ -92,11 +92,11 @@ export type Database = {
           choice_c: string
           choice_d: string
           correct_answer: string
-          created_at?: string
+          created_at?: string | null
           explanation?: string | null
-          id?: never
+          id?: number
           question_text: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           category_id?: number | null
@@ -105,11 +105,11 @@ export type Database = {
           choice_c?: string
           choice_d?: string
           correct_answer?: string
-          created_at?: string
+          created_at?: string | null
           explanation?: string | null
-          id?: never
+          id?: number
           question_text?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -123,27 +123,27 @@ export type Database = {
       }
       users: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: number
           is_admin: boolean | null
           password_hash: string
-          updated_at: string
+          updated_at: string | null
           username: string
         }
         Insert: {
-          created_at?: string
-          id?: never
+          created_at?: string | null
+          id?: number
           is_admin?: boolean | null
           password_hash: string
-          updated_at?: string
+          updated_at?: string | null
           username: string
         }
         Update: {
-          created_at?: string
-          id?: never
+          created_at?: string | null
+          id?: number
           is_admin?: boolean | null
           password_hash?: string
-          updated_at?: string
+          updated_at?: string | null
           username?: string
         }
         Relationships: []
