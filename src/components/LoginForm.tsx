@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginFormProps {
   onLogin: (user: { id: string; username: string; role: string }) => void;
@@ -21,27 +22,58 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     setLoading(true);
 
     try {
-      // Simulate authentication - in real app this would connect to Supabase
-      if (username === 'arif' && password === 'admin123') {
-        onLogin({ id: '1', username: 'arif', role: 'admin' });
+      // Query the users table to check credentials
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username);
+
+      if (error) {
+        console.error('Login error:', error);
         toast({
-          title: "Login successful",
-          description: "Welcome back, admin!",
+          title: "Login failed",
+          description: "An error occurred during login",
+          variant: "destructive",
         });
-      } else if (username === 'user' && password === 'user123') {
-        onLogin({ id: '2', username: 'user', role: 'user' });
-        toast({
-          title: "Login successful",
-          description: "Welcome to the exam platform!",
-        });
-      } else {
+        return;
+      }
+
+      if (!users || users.length === 0) {
         toast({
           title: "Login failed",
           description: "Invalid username or password",
           variant: "destructive",
         });
+        return;
       }
+
+      const user = users[0];
+      // Simple password verification - in production, use proper bcrypt
+      const storedPasswordHash = user.password_hash;
+      const inputPasswordHash = btoa(password);
+
+      if (storedPasswordHash !== inputPasswordHash) {
+        toast({
+          title: "Login failed",
+          description: "Invalid username or password",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Login successful
+      onLogin({ 
+        id: user.id.toString(), 
+        username: user.username, 
+        role: user.is_admin ? 'admin' : 'user' 
+      });
+      
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.username}!`,
+      });
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: "An error occurred during login",

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,48 +9,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Upload, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Upload, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
-  id: string;
-  questionText: string;
-  choices: { A: string; B: string; C: string; D: string };
-  correctChoice: 'A' | 'B' | 'C' | 'D';
+  id: number;
+  question_text: string;
+  choice_a: string;
+  choice_b: string;
+  choice_c: string;
+  choice_d: string;
+  correct_answer: string;
   explanation: string;
-  categoryId: string;
-  categoryName: string;
+  category_id: number;
+  categoryName?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
 }
 
 const QuestionManagement = () => {
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      id: '1',
-      questionText: 'What is 2 + 2?',
-      choices: { A: '3', B: '4', C: '5', D: '6' },
-      correctChoice: 'B',
-      explanation: '2 + 2 equals 4',
-      categoryId: '1',
-      categoryName: 'Mathematics'
-    },
-    {
-      id: '2',
-      questionText: 'What is the speed of light?',
-      choices: { A: '300,000 km/s', B: '150,000 km/s', C: '299,792,458 m/s', D: '250,000 km/s' },
-      correctChoice: 'C',
-      explanation: 'The speed of light in vacuum is exactly 299,792,458 meters per second',
-      categoryId: '2',
-      categoryName: 'Physics'
-    }
-  ]);
-
-  const categories = [
-    { id: '1', name: 'Mathematics' },
-    { id: '2', name: 'Physics' },
-    { id: '3', name: 'Chemistry' },
-    { id: '4', name: 'English' },
-  ];
-
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     questionText: '',
@@ -58,14 +42,65 @@ const QuestionManagement = () => {
     choiceB: '',
     choiceC: '',
     choiceD: '',
-    correctChoice: 'A' as 'A' | 'B' | 'C' | 'D',
+    correctChoice: 'A',
     explanation: '',
     categoryId: '',
   });
   const [csvContent, setCsvContent] = useState('');
   const { toast } = useToast();
 
-  const handleAddQuestion = () => {
+  useEffect(() => {
+    fetchCategories();
+    fetchQuestions();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('exam_categories')
+        .select('id, name')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchQuestions = async () => {
+    try {
+      const { data: questionsData, error } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          exam_categories!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching questions:', error);
+        return;
+      }
+
+      const questionsWithCategory = questionsData.map(q => ({
+        ...q,
+        categoryName: q.exam_categories?.name || 'Unknown'
+      }));
+
+      setQuestions(questionsWithCategory);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddQuestion = async () => {
     if (!formData.questionText || !formData.choiceA || !formData.choiceB || 
         !formData.choiceC || !formData.choiceD || !formData.categoryId) {
       toast({
@@ -76,42 +111,56 @@ const QuestionManagement = () => {
       return;
     }
 
-    const category = categories.find(c => c.id === formData.categoryId);
-    const newQuestion: Question = {
-      id: Date.now().toString(),
-      questionText: formData.questionText,
-      choices: {
-        A: formData.choiceA,
-        B: formData.choiceB,
-        C: formData.choiceC,
-        D: formData.choiceD,
-      },
-      correctChoice: formData.correctChoice,
-      explanation: formData.explanation,
-      categoryId: formData.categoryId,
-      categoryName: category?.name || '',
-    };
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .insert({
+          question_text: formData.questionText,
+          choice_a: formData.choiceA,
+          choice_b: formData.choiceB,
+          choice_c: formData.choiceC,
+          choice_d: formData.choiceD,
+          correct_answer: formData.correctChoice,
+          explanation: formData.explanation,
+          category_id: parseInt(formData.categoryId)
+        });
 
-    setQuestions([...questions, newQuestion]);
-    setFormData({
-      questionText: '',
-      choiceA: '',
-      choiceB: '',
-      choiceC: '',
-      choiceD: '',
-      correctChoice: 'A',
-      explanation: '',
-      categoryId: '',
-    });
-    setIsAddDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Question added successfully",
-    });
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFormData({
+        questionText: '',
+        choiceA: '',
+        choiceB: '',
+        choiceC: '',
+        choiceD: '',
+        correctChoice: 'A',
+        explanation: '',
+        categoryId: '',
+      });
+      setIsAddDialogOpen(false);
+      fetchQuestions();
+      
+      toast({
+        title: "Success",
+        description: "Question added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add question",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCsvUpload = () => {
+  const handleCsvUpload = async () => {
     if (!csvContent.trim()) {
       toast({
         title: "Error",
@@ -121,44 +170,99 @@ const QuestionManagement = () => {
       return;
     }
 
-    // Simple CSV parsing demo
-    const lines = csvContent.trim().split('\n');
-    const newQuestions: Question[] = [];
-    
-    lines.slice(1).forEach((line, index) => {
-      const [questionText, choiceA, choiceB, choiceC, choiceD, correctChoice, explanation, categoryId] = 
-        line.split(',').map(item => item.trim());
+    try {
+      const lines = csvContent.trim().split('\n');
+      const questionsToInsert = [];
       
-      const category = categories.find(c => c.id === categoryId);
-      if (category) {
-        newQuestions.push({
-          id: `csv-${Date.now()}-${index}`,
-          questionText,
-          choices: { A: choiceA, B: choiceB, C: choiceC, D: choiceD },
-          correctChoice: correctChoice as 'A' | 'B' | 'C' | 'D',
-          explanation,
-          categoryId,
-          categoryName: category.name,
-        });
+      for (let i = 1; i < lines.length; i++) { // Skip header
+        const [questionText, choiceA, choiceB, choiceC, choiceD, correctChoice, explanation, categoryId] = 
+          lines[i].split(',').map(item => item.trim());
+        
+        if (questionText && choiceA && choiceB && choiceC && choiceD && correctChoice && categoryId) {
+          questionsToInsert.push({
+            question_text: questionText,
+            choice_a: choiceA,
+            choice_b: choiceB,
+            choice_c: choiceC,
+            choice_d: choiceD,
+            correct_answer: correctChoice,
+            explanation: explanation || '',
+            category_id: parseInt(categoryId)
+          });
+        }
       }
-    });
 
-    setQuestions([...questions, ...newQuestions]);
-    setCsvContent('');
-    
-    toast({
-      title: "Success",
-      description: `${newQuestions.length} questions imported successfully`,
-    });
+      if (questionsToInsert.length === 0) {
+        toast({
+          title: "Error",
+          description: "No valid questions found in CSV",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('questions')
+        .insert(questionsToInsert);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCsvContent('');
+      fetchQuestions();
+      
+      toast({
+        title: "Success",
+        description: `${questionsToInsert.length} questions imported successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to import questions",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    setQuestions(questions.filter(q => q.id !== questionId));
-    toast({
-      title: "Success",
-      description: "Question deleted successfully",
-    });
+  const handleDeleteQuestion = async (questionId: number) => {
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchQuestions();
+      toast({
+        title: "Success",
+        description: "Question deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete question",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="p-6">Loading questions...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -188,7 +292,7 @@ const QuestionManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.id.toString()}>
                         {category.name}
                       </SelectItem>
                     ))}
@@ -244,7 +348,7 @@ const QuestionManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="correctChoice">Correct Answer</Label>
-                <Select value={formData.correctChoice} onValueChange={(value) => setFormData({ ...formData, correctChoice: value as 'A' | 'B' | 'C' | 'D' })}>
+                <Select value={formData.correctChoice} onValueChange={(value) => setFormData({ ...formData, correctChoice: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -296,9 +400,9 @@ const QuestionManagement = () => {
                 <TableBody>
                   {questions.map((question) => (
                     <TableRow key={question.id}>
-                      <TableCell className="max-w-xs truncate">{question.questionText}</TableCell>
+                      <TableCell className="max-w-xs truncate">{question.question_text}</TableCell>
                       <TableCell>{question.categoryName}</TableCell>
-                      <TableCell>{question.correctChoice}</TableCell>
+                      <TableCell>{question.correct_answer}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button variant="ghost" size="sm">

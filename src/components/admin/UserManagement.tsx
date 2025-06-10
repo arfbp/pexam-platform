@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,27 +10,47 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
-  id: string;
+  id: number;
   username: string;
-  role: 'admin' | 'user';
-  createdAt: string;
-  lastLogin: string;
+  is_admin: boolean;
+  created_at: string;
 }
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', username: 'arif', role: 'admin', createdAt: '2024-01-01', lastLogin: '2024-06-10' },
-    { id: '2', username: 'user', role: 'user', createdAt: '2024-02-15', lastLogin: '2024-06-09' },
-    { id: '3', username: 'john_doe', role: 'user', createdAt: '2024-03-10', lastLogin: '2024-06-08' },
-    { id: '4', username: 'jane_smith', role: 'user', createdAt: '2024-04-05', lastLogin: '2024-06-07' },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '', role: 'user' });
   const { toast } = useToast();
 
-  const handleAddUser = () => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddUser = async () => {
     if (!formData.username || !formData.password) {
       toast({
         title: "Error",
@@ -40,31 +60,77 @@ const UserManagement = () => {
       return;
     }
 
-    const newUser: User = {
-      id: Date.now().toString(),
-      username: formData.username,
-      role: formData.role as 'admin' | 'user',
-      createdAt: new Date().toISOString().split('T')[0],
-      lastLogin: 'Never',
-    };
+    try {
+      // Simple password hashing - in production, use proper bcrypt
+      const passwordHash = btoa(formData.password);
+      
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          username: formData.username,
+          password_hash: passwordHash,
+          is_admin: formData.role === 'admin'
+        });
 
-    setUsers([...users, newUser]);
-    setFormData({ username: '', password: '', role: 'user' });
-    setIsAddDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "User added successfully",
-    });
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFormData({ username: '', password: '', role: 'user' });
+      setIsAddDialogOpen(false);
+      fetchUsers();
+      
+      toast({
+        title: "Success",
+        description: "User added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add user",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
-    toast({
-      title: "Success",
-      description: "User deleted successfully",
-    });
+  const handleDeleteUser = async (userId: number) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchUsers();
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="p-6">Loading users...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -135,7 +201,6 @@ const UserManagement = () => {
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Last Login</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -144,12 +209,11 @@ const UserManagement = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                      {user.role}
+                    <Badge variant={user.is_admin ? 'default' : 'secondary'}>
+                      {user.is_admin ? 'admin' : 'user'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{user.createdAt}</TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
+                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Button variant="ghost" size="sm">

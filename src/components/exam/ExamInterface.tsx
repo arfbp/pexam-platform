@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
   id: string;
@@ -24,25 +25,50 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(questionCount === 20 ? 2400 : 6000); // 40 or 100 minutes
-  const [questions] = useState<Question[]>([
-    {
-      id: '1',
-      questionText: 'What is the square root of 144?',
-      choices: { A: '10', B: '11', C: '12', D: '13' },
-      correctChoice: 'C',
-      explanation: 'The square root of 144 is 12 because 12 × 12 = 144'
-    },
-    {
-      id: '2',
-      questionText: 'What is 15% of 200?',
-      choices: { A: '25', B: '30', C: '35', D: '40' },
-      correctChoice: 'B',
-      explanation: '15% of 200 = 0.15 × 200 = 30'
-    },
-    // Add more sample questions as needed
-  ].slice(0, questionCount));
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchQuestions();
+  }, [categoryId, questionCount]);
+
+  const fetchQuestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('category_id', categoryId)
+        .limit(questionCount);
+
+      if (error) {
+        console.error('Error fetching questions:', error);
+        return;
+      }
+
+      const formattedQuestions: Question[] = data.map(q => ({
+        id: q.id.toString(),
+        questionText: q.question_text,
+        choices: {
+          A: q.choice_a,
+          B: q.choice_b,
+          C: q.choice_c,
+          D: q.choice_d
+        },
+        correctChoice: q.correct_answer as 'A' | 'B' | 'C' | 'D',
+        explanation: q.explanation || ''
+      }));
+
+      setQuestions(formattedQuestions);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (loading) return;
+    
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -54,7 +80,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [loading]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -70,13 +96,57 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
     });
   };
 
-  const handleSubmitExam = () => {
+  const handleSubmitExam = async () => {
     const score = questions.reduce((total, question) => {
       return total + (answers[question.id] === question.correctChoice ? 1 : 0);
     }, 0);
 
+    // Save exam result to database
+    try {
+      const { error } = await supabase
+        .from('exam_results')
+        .insert({
+          user_id: 1, // This should be the actual logged-in user ID
+          score,
+          total_questions: questions.length,
+          question_count: questionCount,
+          answers_data: answers
+        });
+
+      if (error) {
+        console.error('Error saving exam result:', error);
+      }
+    } catch (error) {
+      console.error('Error saving exam result:', error);
+    }
+
     onComplete({ questions, answers, score });
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-lg">Loading questions...</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-lg">No questions available for this category.</div>
+            <Button onClick={onBack} className="mt-4">Back to Selection</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;

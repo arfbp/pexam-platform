@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,29 +8,64 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Edit, Trash2, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Category {
-  id: string;
+  id: number;
   name: string;
-  questionCount: number;
-  createdAt: string;
+  description: string;
+  created_at: string;
+  questionCount?: number;
 }
 
 const CategoryManagement = () => {
-  const [categories, setCategories] = useState<Category[]>([
-    { id: '1', name: 'Mathematics', questionCount: 245, createdAt: '2024-01-15' },
-    { id: '2', name: 'Physics', questionCount: 198, createdAt: '2024-01-20' },
-    { id: '3', name: 'Chemistry', questionCount: 156, createdAt: '2024-02-01' },
-    { id: '4', name: 'English', questionCount: 312, createdAt: '2024-02-10' },
-    { id: '5', name: 'Biology', questionCount: 189, createdAt: '2024-02-15' },
-    { id: '6', name: 'Computer Science', questionCount: 147, createdAt: '2024-03-01' },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [categoryName, setCategoryName] = useState('');
+  const [formData, setFormData] = useState({ name: '', description: '' });
   const { toast } = useToast();
 
-  const handleAddCategory = () => {
-    if (!categoryName.trim()) {
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('exam_categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+        return;
+      }
+
+      // Get question counts for each category
+      const categoriesWithCounts = await Promise.all(
+        (categoriesData || []).map(async (category) => {
+          const { count } = await supabase
+            .from('questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', category.id);
+          
+          return {
+            ...category,
+            questionCount: count || 0
+          };
+        })
+      );
+
+      setCategories(categoriesWithCounts);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!formData.name.trim()) {
       toast({
         title: "Error",
         description: "Please enter a category name",
@@ -39,30 +74,73 @@ const CategoryManagement = () => {
       return;
     }
 
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name: categoryName,
-      questionCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    try {
+      const { error } = await supabase
+        .from('exam_categories')
+        .insert({
+          name: formData.name,
+          description: formData.description
+        });
 
-    setCategories([...categories, newCategory]);
-    setCategoryName('');
-    setIsAddDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Category added successfully",
-    });
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFormData({ name: '', description: '' });
+      setIsAddDialogOpen(false);
+      fetchCategories();
+      
+      toast({
+        title: "Success",
+        description: "Category added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteCategory = (categoryId: string) => {
-    setCategories(categories.filter(category => category.id !== categoryId));
-    toast({
-      title: "Success",
-      description: "Category deleted successfully",
-    });
+  const handleDeleteCategory = async (categoryId: number) => {
+    try {
+      const { error } = await supabase
+        .from('exam_categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      fetchCategories();
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="p-6">Loading categories...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -88,9 +166,18 @@ const CategoryManagement = () => {
                 <Label htmlFor="categoryName">Category Name</Label>
                 <Input
                   id="categoryName"
-                  value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter category name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="categoryDescription">Description (Optional)</Label>
+                <Input
+                  id="categoryDescription"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter description"
                 />
               </div>
               <Button onClick={handleAddCategory} className="w-full">Add Category</Button>
@@ -124,9 +211,12 @@ const CategoryManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-900">{category.questionCount}</p>
+                <p className="text-2xl font-bold text-gray-900">{category.questionCount || 0}</p>
                 <p className="text-sm text-gray-500">Questions available</p>
-                <p className="text-xs text-gray-400">Created: {category.createdAt}</p>
+                <p className="text-xs text-gray-400">Created: {new Date(category.created_at).toLocaleDateString()}</p>
+                {category.description && (
+                  <p className="text-xs text-gray-600">{category.description}</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -143,6 +233,7 @@ const CategoryManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Category</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Questions</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
@@ -152,8 +243,9 @@ const CategoryManagement = () => {
               {categories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>{category.questionCount}</TableCell>
-                  <TableCell>{category.createdAt}</TableCell>
+                  <TableCell>{category.description || 'No description'}</TableCell>
+                  <TableCell>{category.questionCount || 0}</TableCell>
+                  <TableCell>{new Date(category.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Button variant="ghost" size="sm">
