@@ -10,6 +10,7 @@ import ExamSelection from '@/components/exam/ExamSelection';
 import ExamInterface from '@/components/exam/ExamInterface';
 import ExamResults from '@/components/exam/ExamResults';
 import ResultsHistory from '@/components/ResultsHistory';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -33,10 +34,17 @@ const Index = () => {
 
   const handleLogin = (userData: User) => {
     setUser(userData);
-    setCurrentView(userData.role === 'admin' ? 'dashboard' : 'exams');
+    // All users are admin now, so always show admin dashboard
+    setCurrentView('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Check if user is logged in via Google OAuth
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.auth.signOut();
+    }
+    
     setUser(null);
     setCurrentView('dashboard');
     setExamSession(null);
