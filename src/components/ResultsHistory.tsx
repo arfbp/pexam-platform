@@ -1,64 +1,83 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, TrendingUp, Award, Eye } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExamResult {
   id: string;
-  categoryName: string;
   score: number;
-  totalQuestions: number;
+  total_questions: number;
+  question_count: number;
+  created_at: string;
   percentage: number;
-  date: string;
-  duration: string;
 }
 
 const ResultsHistory = () => {
-  const [results] = useState<ExamResult[]>([
-    {
-      id: '1',
-      categoryName: 'Mathematics',
-      score: 18,
-      totalQuestions: 20,
-      percentage: 90,
-      date: '2024-06-10',
-      duration: '25 min'
-    },
-    {
-      id: '2',
-      categoryName: 'Physics',
-      score: 35,
-      totalQuestions: 50,
-      percentage: 70,
-      date: '2024-06-08',
-      duration: '68 min'
-    },
-    {
-      id: '3',
-      categoryName: 'Chemistry',
-      score: 16,
-      totalQuestions: 20,
-      percentage: 80,
-      date: '2024-06-05',
-      duration: '32 min'
-    },
-    {
-      id: '4',
-      categoryName: 'English',
-      score: 42,
-      totalQuestions: 50,
-      percentage: 84,
-      date: '2024-06-03',
-      duration: '55 min'
-    },
-  ]);
+  const [results, setResults] = useState<ExamResult[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const chartData = results.map((result, index) => ({
-    name: result.categoryName,
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
+  const fetchResults = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('exam_results')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching exam results:', error);
+        return;
+      }
+
+      const formattedResults = (data || []).map(result => ({
+        id: result.id.toString(),
+        score: result.score,
+        total_questions: result.total_questions,
+        question_count: result.question_count,
+        created_at: new Date(result.created_at).toLocaleDateString(),
+        percentage: Math.round((result.score / result.total_questions) * 100)
+      }));
+
+      setResults(formattedResults);
+    } catch (error) {
+      console.error('Error fetching exam results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">My Results</h2>
+          <p className="text-gray-600">Loading your exam results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (results.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">My Results</h2>
+          <p className="text-gray-600">No exam results found. Take an exam to see your results here.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = results.slice(0, 10).map((result, index) => ({
+    name: `Exam ${results.length - index}`,
     score: result.percentage,
     exam: index + 1
   }));
@@ -111,7 +130,7 @@ const ResultsHistory = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {Math.round((passedExams / totalExams) * 100)}%
+              {totalExams > 0 ? Math.round((passedExams / totalExams) * 100) : 0}%
             </div>
             <p className="text-xs text-gray-500">{passedExams} of {totalExams} passed</p>
           </CardContent>
@@ -119,23 +138,25 @@ const ResultsHistory = () => {
       </div>
 
       {/* Performance Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance Overview</CardTitle>
-          <CardDescription>Your scores across different exam categories</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip formatter={(value) => [`${value}%`, 'Score']} />
-              <Bar dataKey="score" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {chartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance Overview</CardTitle>
+            <CardDescription>Your scores across recent exams</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Score']} />
+                <Bar dataKey="score" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results Table */}
       <Card>
@@ -147,10 +168,9 @@ const ResultsHistory = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category</TableHead>
                 <TableHead>Score</TableHead>
                 <TableHead>Percentage</TableHead>
-                <TableHead>Duration</TableHead>
+                <TableHead>Questions</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -159,11 +179,10 @@ const ResultsHistory = () => {
             <TableBody>
               {results.map((result) => (
                 <TableRow key={result.id}>
-                  <TableCell className="font-medium">{result.categoryName}</TableCell>
-                  <TableCell>{result.score}/{result.totalQuestions}</TableCell>
+                  <TableCell className="font-medium">{result.score}/{result.total_questions}</TableCell>
                   <TableCell className="font-semibold">{result.percentage}%</TableCell>
-                  <TableCell>{result.duration}</TableCell>
-                  <TableCell>{result.date}</TableCell>
+                  <TableCell>{result.question_count} questions</TableCell>
+                  <TableCell>{result.created_at}</TableCell>
                   <TableCell>{getPercentageBadge(result.percentage)}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" className="flex items-center space-x-1">

@@ -1,29 +1,84 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, BookOpen, FileText, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface DashboardStats {
+  totalUsers: number;
+  totalCategories: number;
+  totalQuestions: number;
+  totalExams: number;
+}
 
 const Dashboard = () => {
-  const stats = [
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalCategories: 0,
+    totalQuestions: 0,
+    totalExams: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      // Fetch total users
+      const { count: usersCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch total categories
+      const { count: categoriesCount } = await supabase
+        .from('exam_categories')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch total questions
+      const { count: questionsCount } = await supabase
+        .from('questions')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch total exam results
+      const { count: examsCount } = await supabase
+        .from('exam_results')
+        .select('*', { count: 'exact', head: true });
+
+      setStats({
+        totalUsers: usersCount || 0,
+        totalCategories: categoriesCount || 0,
+        totalQuestions: questionsCount || 0,
+        totalExams: examsCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsCards = [
     {
       title: 'Total Users',
-      value: '24',
-      description: '2 admins, 22 users',
+      value: loading ? '...' : stats.totalUsers.toString(),
+      description: 'Registered users',
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       title: 'Categories',
-      value: '8',
-      description: 'Active exam categories',
+      value: loading ? '...' : stats.totalCategories.toString(),
+      description: 'Exam categories',
       icon: BookOpen,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       title: 'Questions',
-      value: '1,247',
+      value: loading ? '...' : stats.totalQuestions.toString(),
       description: 'Total question bank',
       icon: FileText,
       color: 'text-purple-600',
@@ -31,8 +86,8 @@ const Dashboard = () => {
     },
     {
       title: 'Exams Taken',
-      value: '156',
-      description: 'This month',
+      value: loading ? '...' : stats.totalExams.toString(),
+      description: 'Total completed',
       icon: TrendingUp,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -47,7 +102,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
+        {statsCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className="hover:shadow-md transition-shadow">
@@ -71,25 +126,26 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest platform activities</CardDescription>
+            <CardTitle>System Information</CardTitle>
+            <CardDescription>Current platform status</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-gray-600">New user registered: john_doe</span>
-                <span className="text-gray-400 ml-auto">2 hours ago</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Database Status</span>
+                <span className="text-green-600 font-semibold">Connected</span>
               </div>
-              <div className="flex items-center space-x-3 text-sm">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-gray-600">50 questions added to Math category</span>
-                <span className="text-gray-400 ml-auto">4 hours ago</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Authentication</span>
+                <span className="text-green-600 font-semibold">Active</span>
               </div>
-              <div className="flex items-center space-x-3 text-sm">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span className="text-gray-600">Physics exam completed by 12 users</span>
-                <span className="text-gray-400 ml-auto">6 hours ago</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Question Bank</span>
+                <span className="text-blue-600 font-semibold">{stats.totalQuestions} questions</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Active Categories</span>
+                <span className="text-purple-600 font-semibold">{stats.totalCategories} categories</span>
               </div>
             </div>
           </CardContent>
@@ -97,30 +153,23 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Popular Categories</CardTitle>
-            <CardDescription>Most attempted exam categories</CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { name: 'Mathematics', attempts: 45, percentage: 85 },
-                { name: 'Physics', attempts: 38, percentage: 72 },
-                { name: 'English', attempts: 32, percentage: 60 },
-                { name: 'Chemistry', attempts: 28, percentage: 53 },
-              ].map((category) => (
-                <div key={category.name} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-gray-500">{category.attempts} attempts</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${category.percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+              <div className="text-sm text-gray-600">
+                • Add new questions to expand the question bank
+              </div>
+              <div className="text-sm text-gray-600">
+                • Create new exam categories for different subjects
+              </div>
+              <div className="text-sm text-gray-600">
+                • Monitor exam results and user performance
+              </div>
+              <div className="text-sm text-gray-600">
+                • Manage user accounts and permissions
+              </div>
             </div>
           </CardContent>
         </Card>

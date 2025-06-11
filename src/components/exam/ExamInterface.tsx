@@ -24,7 +24,7 @@ interface ExamInterfaceProps {
 const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamInterfaceProps) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [timeLeft, setTimeLeft] = useState(questionCount === 20 ? 2400 : 6000); // 40 or 100 minutes
+  const [timeLeft, setTimeLeft] = useState(questionCount === 20 ? 2400 : 6000);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,20 +32,38 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
     fetchQuestions();
   }, [categoryId, questionCount]);
 
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
   const fetchQuestions = async () => {
     try {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
-        .eq('category_id', parseInt(categoryId))
-        .limit(questionCount);
+        .eq('category_id', parseInt(categoryId));
 
       if (error) {
         console.error('Error fetching questions:', error);
         return;
       }
 
-      const formattedQuestions: Question[] = data.map(q => ({
+      if (!data || data.length === 0) {
+        console.log('No questions found for category:', categoryId);
+        setLoading(false);
+        return;
+      }
+
+      // Shuffle questions and take the requested amount
+      const shuffledQuestions = shuffleArray(data);
+      const selectedQuestions = shuffledQuestions.slice(0, questionCount);
+
+      const formattedQuestions: Question[] = selectedQuestions.map(q => ({
         id: q.id.toString(),
         questionText: q.question_text,
         choices: {
@@ -108,7 +126,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
   };
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || questions.length === 0) return;
     
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -121,7 +139,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading]);
+  }, [loading, questions.length]);
 
   if (loading) {
     return (
