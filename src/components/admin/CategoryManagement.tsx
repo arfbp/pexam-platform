@@ -109,6 +109,17 @@ const CategoryManagement = () => {
   };
 
   const handleDeleteCategory = async (categoryId: number) => {
+    // Find the category to check if it's the GCP Practice Exam
+    const category = categories.find(cat => cat.id === categoryId);
+    if (category?.name === "GCP Practice Exam") {
+      toast({
+        title: "Error",
+        description: "GCP Practice Exam category cannot be deleted",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('exam_categories')
@@ -200,13 +211,15 @@ const CategoryManagement = () => {
                 <Button variant="ghost" size="sm">
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleDeleteCategory(category.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {category.name !== "GCP Practice Exam" && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleDeleteCategory(category.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -251,13 +264,15 @@ const CategoryManagement = () => {
                       <Button variant="ghost" size="sm">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDeleteCategory(category.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {category.name !== "GCP Practice Exam" && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDeleteCategory(category.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
