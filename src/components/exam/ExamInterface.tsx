@@ -10,20 +10,21 @@ interface Question {
   id: string;
   questionText: string;
   choices: { A: string; B: string; C: string; D: string };
-  correctChoice: 'A' | 'B' | 'C' | 'D';
+  correctChoice: string; // Can be multiple letters like "ABC" or "BD"
   explanation: string;
 }
 
 interface ExamInterfaceProps {
   categoryId: string;
   questionCount: number;
-  onComplete: (results: { questions: Question[]; answers: Record<string, string>; score: number }) => void;
+  onComplete: (results: { questions: Question[]; answers: Record<string, string[]>; score: number }) => void;
   onBack: () => void;
+  userId?: number;
 }
 
-const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamInterfaceProps) => {
+const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId = 1 }: ExamInterfaceProps) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(questionCount === 20 ? 2400 : 6000);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
           C: q.choice_c,
           D: q.choice_d
         },
-        correctChoice: q.correct_answer as 'A' | 'B' | 'C' | 'D',
+        correctChoice: q.correct_answer,
         explanation: q.explanation || ''
       }));
 
@@ -92,15 +93,29 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
   };
 
   const handleAnswerSelect = (choice: string) => {
-    setAnswers({
-      ...answers,
-      [questions[currentQuestionIndex].id]: choice
-    });
+    const questionId = questions[currentQuestionIndex].id;
+    const currentAnswers = answers[questionId] || [];
+    
+    if (currentAnswers.includes(choice)) {
+      // Remove choice if already selected
+      setAnswers({
+        ...answers,
+        [questionId]: currentAnswers.filter(c => c !== choice)
+      });
+    } else {
+      // Add choice if not selected
+      setAnswers({
+        ...answers,
+        [questionId]: [...currentAnswers, choice].sort()
+      });
+    }
   };
 
   const handleSubmitExam = async () => {
     const score = questions.reduce((total, question) => {
-      return total + (answers[question.id] === question.correctChoice ? 1 : 0);
+      const userAnswer = (answers[question.id] || []).join('');
+      const correctAnswer = question.correctChoice;
+      return total + (userAnswer === correctAnswer ? 1 : 0);
     }, 0);
 
     // Save exam result to database
@@ -108,7 +123,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
       const { error } = await supabase
         .from('exam_results')
         .insert({
-          user_id: 1, // This should be the actual logged-in user ID
+          user_id: userId,
           score,
           total_questions: questions.length,
           question_count: questionCount,
@@ -201,17 +216,28 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
           <CardTitle className="text-xl">{currentQuestion.questionText}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {Object.entries(currentQuestion.choices).map(([key, value]) => (
-            <Button
-              key={key}
-              variant={answers[currentQuestion.id] === key ? "default" : "outline"}
-              className="w-full justify-start text-left h-auto p-4"
-              onClick={() => handleAnswerSelect(key)}
-            >
-              <span className="font-semibold mr-3">{key}.</span>
-              <span>{value}</span>
-            </Button>
-          ))}
+          <div className="text-sm text-gray-600 mb-4">
+            Select all that apply. Multiple answers may be correct.
+          </div>
+          {Object.entries(currentQuestion.choices).map(([key, value]) => {
+            const isSelected = (answers[currentQuestion.id] || []).includes(key);
+            return (
+              <Button
+                key={key}
+                variant={isSelected ? "default" : "outline"}
+                className="w-full justify-start text-left h-auto p-4"
+                onClick={() => handleAnswerSelect(key)}
+              >
+                <div className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
+                  isSelected ? 'bg-white border-white' : 'border-gray-400'
+                }`}>
+                  {isSelected && <span className="text-xs text-black">✓</span>}
+                </div>
+                <span className="font-semibold mr-3">{key}.</span>
+                <span>{value}</span>
+              </Button>
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -254,7 +280,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack }: ExamIn
                 key={index}
                 variant={currentQuestionIndex === index ? "default" : "outline"}
                 size="sm"
-                className={`w-10 h-10 ${answers[questions[index].id] ? 'bg-green-100 border-green-300' : ''}`}
+                className={`w-10 h-10 ${(answers[questions[index].id] || []).length > 0 ? 'bg-green-100 border-green-300' : ''}`}
                 onClick={() => setCurrentQuestionIndex(index)}
               >
                 {index + 1}

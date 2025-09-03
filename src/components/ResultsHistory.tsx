@@ -17,7 +17,11 @@ interface ExamResult {
   percentage: number;
 }
 
-const ResultsHistory = () => {
+interface ResultsHistoryProps {
+  userId?: number;
+}
+
+const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
   const [results, setResults] = useState<ExamResult[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +34,7 @@ const ResultsHistory = () => {
       const { data, error } = await supabase
         .from('exam_results')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {

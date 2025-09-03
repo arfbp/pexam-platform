@@ -22,7 +22,7 @@ interface ExamSession {
   categoryId: string;
   questionCount: number;
   questions?: any[];
-  answers?: Record<string, string>;
+  answers?: Record<string, string[]>;
   score?: number;
 }
 
@@ -56,7 +56,7 @@ const Index = () => {
     setExamState('taking');
   };
 
-  const handleExamComplete = (results: { questions: any[]; answers: Record<string, string>; score: number }) => {
+  const handleExamComplete = (results: { questions: any[]; answers: Record<string, string[]>; score: number }) => {
     setExamSession({
       ...examSession!,
       questions: results.questions,
@@ -90,6 +90,7 @@ const Index = () => {
             questionCount={examSession.questionCount}
             onComplete={handleExamComplete}
             onBack={handleBackToSelection}
+            userId={parseInt(user.id)}
           />
         );
       } else if (examState === 'results' && examSession) {
@@ -115,7 +116,7 @@ const Index = () => {
       case 'questions':
         return <QuestionManagement />;
       case 'results':
-        return <ResultsHistory />;
+        return <ResultsHistory userId={parseInt(user.id)} />;
       default:
         return <Dashboard />;
     }

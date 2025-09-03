@@ -9,13 +9,13 @@ interface Question {
   id: string;
   questionText: string;
   choices: { A: string; B: string; C: string; D: string };
-  correctChoice: 'A' | 'B' | 'C' | 'D';
+  correctChoice: string; // Can be multiple letters like "ABC" or "BD"
   explanation: string;
 }
 
 interface ExamResultsProps {
   questions: Question[];
-  answers: Record<string, string>;
+  answers: Record<string, string[]>;
   score: number;
   onRetakeExam: () => void;
   onBackToSelection: () => void;
@@ -83,8 +83,9 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
         </CardHeader>
         <CardContent className="space-y-6">
           {questions.map((question, index) => {
-            const userAnswer = answers[question.id];
-            const isCorrect = userAnswer === question.correctChoice;
+            const userAnswer = (answers[question.id] || []).join('');
+            const correctAnswer = question.correctChoice;
+            const isCorrect = userAnswer === correctAnswer;
             
             return (
               <div key={question.id} className="border rounded-lg p-4 space-y-3">
@@ -102,26 +103,35 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                     </h4>
                     
                     <div className="mt-3 space-y-2">
-                      {Object.entries(question.choices).map(([key, value]) => (
-                        <div
-                          key={key}
-                          className={`p-2 rounded text-sm ${
-                            key === question.correctChoice
-                              ? 'bg-green-100 text-green-800 border border-green-300'
-                              : key === userAnswer && !isCorrect
-                              ? 'bg-red-100 text-red-800 border border-red-300'
-                              : 'bg-gray-50'
-                          }`}
-                        >
-                          <span className="font-semibold">{key}.</span> {value}
-                          {key === question.correctChoice && (
-                            <Badge variant="secondary" className="ml-2 text-xs">Correct</Badge>
-                          )}
-                          {key === userAnswer && !isCorrect && (
-                            <Badge variant="destructive" className="ml-2 text-xs">Your Answer</Badge>
-                          )}
-                        </div>
-                      ))}
+                      {Object.entries(question.choices).map(([key, value]) => {
+                        const isCorrect = correctAnswer.includes(key);
+                        const wasSelected = (answers[question.id] || []).includes(key);
+                        const isWrongSelection = wasSelected && !isCorrect;
+                        
+                        return (
+                          <div
+                            key={key}
+                            className={`p-2 rounded text-sm ${
+                              isCorrect
+                                ? 'bg-green-100 text-green-800 border border-green-300'
+                                : isWrongSelection
+                                ? 'bg-red-100 text-red-800 border border-red-300'
+                                : 'bg-gray-50'
+                            }`}
+                          >
+                            <span className="font-semibold">{key}.</span> {value}
+                            {isCorrect && (
+                              <Badge variant="secondary" className="ml-2 text-xs">Correct</Badge>
+                            )}
+                            {wasSelected && !isCorrect && (
+                              <Badge variant="destructive" className="ml-2 text-xs">Your Answer</Badge>
+                            )}
+                            {wasSelected && isCorrect && (
+                              <Badge className="ml-2 text-xs bg-green-600">✓ Selected</Badge>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {question.explanation && (
