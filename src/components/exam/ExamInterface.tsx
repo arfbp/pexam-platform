@@ -225,16 +225,20 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
               <Button
                 key={key}
                 variant={isSelected ? "default" : "outline"}
-                className="w-full justify-start text-left h-auto p-4"
+                className="w-full justify-start text-left h-auto p-4 min-h-[60px]"
                 onClick={() => handleAnswerSelect(key)}
               >
-                <div className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center ${
-                  isSelected ? 'bg-white border-white' : 'border-gray-400'
-                }`}>
-                  {isSelected && <span className="text-xs text-black">✓</span>}
+                <div className="flex items-start w-full">
+                  <div className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center flex-shrink-0 mt-1 ${
+                    isSelected ? 'bg-white border-white' : 'border-gray-400'
+                  }`}>
+                    {isSelected && <span className="text-xs text-black">✓</span>}
+                  </div>
+                  <div className="flex items-start min-w-0 flex-1">
+                    <span className="font-semibold mr-3 flex-shrink-0">{key}.</span>
+                    <span className="break-words whitespace-normal leading-relaxed">{value}</span>
+                  </div>
                 </div>
-                <span className="font-semibold mr-3">{key}.</span>
-                <span>{value}</span>
               </Button>
             );
           })}
