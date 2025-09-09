@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Question {
   id: string;
   questionText: string;
-  choices: { A: string; B: string; C: string; D: string };
+  choices: { A: string; B: string; C: string; D: string; E?: string; F?: string };
   correctChoice: string; // Can be multiple letters like "ABC" or "BD"
   explanation: string;
 }
@@ -64,18 +64,31 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
       const shuffledQuestions = shuffleArray(data);
       const selectedQuestions = shuffledQuestions.slice(0, questionCount);
 
-      const formattedQuestions: Question[] = selectedQuestions.map(q => ({
-        id: q.id.toString(),
-        questionText: q.question_text,
-        choices: {
+      const formattedQuestions: Question[] = selectedQuestions.map(q => {
+        const dbRecord = q as any; // Type assertion to access choice_e and choice_f
+        const choices: { A: string; B: string; C: string; D: string; E?: string; F?: string } = {
           A: q.choice_a,
           B: q.choice_b,
           C: q.choice_c,
           D: q.choice_d
-        },
-        correctChoice: q.correct_answer,
-        explanation: q.explanation || ''
-      }));
+        };
+        
+        // Add E and F choices if they exist and are not empty
+        if (dbRecord.choice_e && dbRecord.choice_e.trim()) {
+          choices.E = dbRecord.choice_e;
+        }
+        if (dbRecord.choice_f && dbRecord.choice_f.trim()) {
+          choices.F = dbRecord.choice_f;
+        }
+
+        return {
+          id: q.id.toString(),
+          questionText: q.question_text,
+          choices,
+          correctChoice: q.correct_answer,
+          explanation: q.explanation || ''
+        };
+      });
 
       setQuestions(formattedQuestions);
       setLoading(false);
