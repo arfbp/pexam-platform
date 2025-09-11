@@ -88,8 +88,8 @@ const ExamSelection = ({ onStartExam }: ExamSelectionProps) => {
   if (categories.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-lg text-gray-600">No categories with questions available.</div>
-        <p className="text-sm text-gray-500 mt-2">Please add some questions to categories first.</p>
+        <div className="text-lg text-muted-foreground">No categories with questions available.</div>
+        <p className="text-sm text-muted-foreground mt-2">Please add some questions to categories first.</p>
       </div>
     );
   }
@@ -100,8 +100,8 @@ const ExamSelection = ({ onStartExam }: ExamSelectionProps) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Take an Exam</h2>
-        <p className="text-gray-600">Choose a category and test your knowledge</p>
+        <h2 className="text-3xl font-bold text-foreground mb-2">Take an Exam</h2>
+        <p className="text-muted-foreground">Choose a category and test your knowledge</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -109,26 +109,26 @@ const ExamSelection = ({ onStartExam }: ExamSelectionProps) => {
           <Card 
             key={category.id} 
             className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-              selectedCategory === category.id.toString() ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              selectedCategory === category.id.toString() ? 'ring-2 ring-primary bg-primary/5' : ''
             }`}
             onClick={() => setSelectedCategory(category.id.toString())}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <CardTitle className="text-lg">{category.name}</CardTitle>
                 </div>
                 {selectedCategory === category.id.toString() && (
-                  <Badge className="bg-blue-600">Selected</Badge>
+                  <Badge className="bg-primary text-primary-foreground">Selected</Badge>
                 )}
               </div>
               <CardDescription>{category.description || 'No description available'}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span className="flex items-center space-x-1">
                   <Users className="h-4 w-4" />
                   <span>{category.questionCount} questions</span>
@@ -160,13 +160,13 @@ const ExamSelection = ({ onStartExam }: ExamSelectionProps) => {
               </Select>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex items-center space-x-2 text-sm">
-                <Clock className="h-4 w-4 text-gray-500" />
+                <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>Estimated time: {selectedLength === '20' ? '30-40' : '75-90'} minutes</span>
               </div>
               <div className="flex items-center space-x-2 text-sm">
-                <BookOpen className="h-4 w-4 text-gray-500" />
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
                 <span>Category: {selectedCategoryData?.name}</span>
               </div>
             </div>

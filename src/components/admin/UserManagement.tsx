@@ -144,8 +144,8 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600">Manage platform users and their roles</p>
+          <h2 className="text-2xl font-bold text-foreground">User Management</h2>
+          <p className="text-muted-foreground">Manage platform users and their roles</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>

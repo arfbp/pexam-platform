@@ -157,8 +157,8 @@ const CategoryManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Category Management</h2>
-          <p className="text-gray-600">Organize questions into exam categories</p>
+          <h2 className="text-2xl font-bold text-foreground">Category Management</h2>
+          <p className="text-muted-foreground">Organize questions into exam categories</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -224,11 +224,11 @@ const CategoryManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-900">{category.questionCount || 0}</p>
-                <p className="text-sm text-gray-500">Questions available</p>
-                <p className="text-xs text-gray-400">Created: {new Date(category.created_at).toLocaleDateString()}</p>
+                <p className="text-2xl font-bold text-foreground">{category.questionCount || 0}</p>
+                <p className="text-sm text-muted-foreground">Questions available</p>
+                <p className="text-xs text-muted-foreground">Created: {new Date(category.created_at).toLocaleDateString()}</p>
                 {category.description && (
-                  <p className="text-xs text-gray-600">{category.description}</p>
+                  <p className="text-xs text-muted-foreground">{category.description}</p>
                 )}
               </div>
             </CardContent>

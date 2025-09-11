@@ -156,7 +156,7 @@ const LoginForm = ({
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">Exam Platform</CardTitle>
+          <CardTitle className="text-2xl font-bold text-foreground">Exam Platform</CardTitle>
           <CardDescription>Sign in to access your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

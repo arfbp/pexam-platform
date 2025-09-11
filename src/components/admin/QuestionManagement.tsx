@@ -268,8 +268,8 @@ const QuestionManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Question Management</h2>
-          <p className="text-gray-600">Add and manage exam questions</p>
+          <h2 className="text-2xl font-bold text-foreground">Question Management</h2>
+          <p className="text-muted-foreground">Add and manage exam questions</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -452,7 +452,7 @@ const QuestionManagement = () => {
                 <Upload className="h-4 w-4" />
                 <span>Upload Questions</span>
               </Button>
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">Sample CSV Format:</h4>
                 <code className="text-sm">
                   What is 3+3?,5,6,7,8,B,3+3 equals 6,1<br/>

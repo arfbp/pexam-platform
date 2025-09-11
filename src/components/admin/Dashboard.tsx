@@ -97,8 +97,8 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p className="text-gray-600">Overview of platform activity and statistics</p>
+        <h2 className="text-2xl font-bold text-foreground">Admin Dashboard</h2>
+        <p className="text-muted-foreground">Overview of platform activity and statistics</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -107,7 +107,7 @@ const Dashboard = () => {
           return (
             <Card key={stat.title} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
@@ -115,8 +115,8 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               </CardContent>
             </Card>
           );
@@ -132,19 +132,19 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Database Status</span>
+                <span className="text-muted-foreground">Database Status</span>
                 <span className="text-green-600 font-semibold">Connected</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Authentication</span>
+                <span className="text-muted-foreground">Authentication</span>
                 <span className="text-green-600 font-semibold">Active</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Question Bank</span>
+                <span className="text-muted-foreground">Question Bank</span>
                 <span className="text-blue-600 font-semibold">{stats.totalQuestions} questions</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Active Categories</span>
+                <span className="text-muted-foreground">Active Categories</span>
                 <span className="text-purple-600 font-semibold">{stats.totalCategories} categories</span>
               </div>
             </div>
@@ -158,16 +158,16 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 • Add new questions to expand the question bank
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 • Create new exam categories for different subjects
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 • Monitor exam results and user performance
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 • Manage user accounts and permissions
               </div>
             </div>

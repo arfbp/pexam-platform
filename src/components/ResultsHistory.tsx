@@ -63,8 +63,8 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Results</h2>
-          <p className="text-gray-600">Loading your exam results...</p>
+          <h2 className="text-2xl font-bold text-foreground">My Results</h2>
+          <p className="text-muted-foreground">Loading your exam results...</p>
         </div>
       </div>
     );
@@ -74,8 +74,8 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Results</h2>
-          <p className="text-gray-600">No exam results found. Take an exam to see your results here.</p>
+          <h2 className="text-2xl font-bold text-foreground">My Results</h2>
+          <p className="text-muted-foreground">No exam results found. Take an exam to see your results here.</p>
         </div>
       </div>
     );
@@ -100,8 +100,8 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">My Results</h2>
-        <p className="text-gray-600">Track your exam performance and progress</p>
+        <h2 className="text-2xl font-bold text-foreground">My Results</h2>
+        <p className="text-muted-foreground">Track your exam performance and progress</p>
       </div>
 
       {/* Summary Cards */}
@@ -113,7 +113,7 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{averageScore}%</div>
-            <p className="text-xs text-gray-500">Across all exams</p>
+            <p className="text-xs text-muted-foreground">Across all exams</p>
           </CardContent>
         </Card>
 
@@ -124,7 +124,7 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{totalExams}</div>
-            <p className="text-xs text-gray-500">Total completed</p>
+            <p className="text-xs text-muted-foreground">Total completed</p>
           </CardContent>
         </Card>
 
@@ -137,7 +137,7 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
             <div className="text-2xl font-bold text-purple-600">
               {totalExams > 0 ? Math.round((passedExams / totalExams) * 100) : 0}%
             </div>
-            <p className="text-xs text-gray-500">{passedExams} of {totalExams} passed</p>
+            <p className="text-xs text-muted-foreground">{passedExams} of {totalExams} passed</p>
           </CardContent>
         </Card>
       </div>

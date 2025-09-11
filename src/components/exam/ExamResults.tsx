@@ -26,9 +26,9 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
   const passed = percentage >= 70;
 
   const getScoreColor = () => {
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+    if (percentage >= 80) return 'text-success';
+    if (percentage >= 70) return 'text-warning';
+    return 'text-destructive';
   };
 
   const getScoreBadgeVariant = () => {
@@ -43,8 +43,8 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
       <Card>
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className={`p-4 rounded-full ${passed ? 'bg-green-100' : 'bg-red-100'}`}>
-              <Trophy className={`h-8 w-8 ${passed ? 'text-green-600' : 'text-red-600'}`} />
+            <div className={`p-4 rounded-full ${passed ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+              <Trophy className={`h-8 w-8 ${passed ? 'text-success' : 'text-destructive'}`} />
             </div>
           </div>
           <CardTitle className="text-3xl">Exam Complete!</CardTitle>
@@ -55,7 +55,7 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
             <div className={`text-6xl font-bold ${getScoreColor()}`}>
               {percentage}%
             </div>
-            <div className="text-xl text-gray-600">
+            <div className="text-xl text-muted-foreground">
               {score} out of {questions.length} correct
             </div>
             <Badge variant={getScoreBadgeVariant()} className="text-lg px-4 py-2">
@@ -92,13 +92,13 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 mt-1">
                     {isCorrect ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className="h-5 w-5 text-success" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
+                      <XCircle className="h-5 w-5 text-destructive" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">
+                    <h4 className="font-semibold text-foreground">
                       Question {index + 1}: {question.questionText}
                     </h4>
                     
@@ -113,10 +113,10 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                             key={key}
                             className={`p-2 rounded text-sm ${
                               isCorrect
-                                ? 'bg-green-100 text-green-800 border border-green-300'
+                                ? 'bg-success/10 text-success border border-success/20'
                                 : isWrongSelection
-                                ? 'bg-red-100 text-red-800 border border-red-300'
-                                : 'bg-gray-50'
+                                ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                                : 'bg-muted/50'
                             }`}
                           >
                             <span className="font-semibold">{key}.</span> {value}
@@ -127,7 +127,7 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                               <Badge variant="destructive" className="ml-2 text-xs">Your Answer</Badge>
                             )}
                             {wasSelected && isCorrect && (
-                              <Badge className="ml-2 text-xs bg-green-600">✓ Selected</Badge>
+                              <Badge className="ml-2 text-xs bg-success text-success-foreground">✓ Selected</Badge>
                             )}
                           </div>
                         );
@@ -135,11 +135,11 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                     </div>
 
                     {question.explanation && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-                        <p className="text-sm text-blue-800">
-                          <strong>Explanation:</strong> {question.explanation}
-                        </p>
-                      </div>
+                        <div className="mt-3 p-3 bg-info/10 text-info border border-info/20 rounded">
+                          <p className="text-sm">
+                            <strong>Explanation:</strong> {question.explanation}
+                          </p>
+                        </div>
                     )}
                   </div>
                 </div>

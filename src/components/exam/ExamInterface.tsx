@@ -208,7 +208,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
                 <ChevronLeft className="h-4 w-4" />
                 <span>Back</span>
               </Button>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </div>
             </div>
@@ -229,7 +229,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
           <CardTitle className="text-xl">{currentQuestion.questionText}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-sm text-gray-600 mb-4">
+          <div className="text-sm text-muted-foreground mb-4">
             Select all that apply. Multiple answers may be correct.
           </div>
           {Object.entries(currentQuestion.choices).map(([key, value]) => {
@@ -243,9 +243,9 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
               >
                 <div className="flex items-start w-full">
                   <div className={`w-4 h-4 rounded border-2 mr-3 flex items-center justify-center flex-shrink-0 mt-1 ${
-                    isSelected ? 'bg-white border-white' : 'border-gray-400'
+                    isSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary'
                   }`}>
-                    {isSelected && <span className="text-xs text-black">✓</span>}
+                    {isSelected && <span className="text-xs font-bold">✓</span>}
                   </div>
                   <div className="flex items-start min-w-0 flex-1">
                     <span className="font-semibold mr-3 flex-shrink-0">{key}.</span>
