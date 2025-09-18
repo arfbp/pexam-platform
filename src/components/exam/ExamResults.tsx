@@ -113,10 +113,10 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                             key={key}
                             className={`p-2 rounded text-sm ${
                               isCorrect
-                                ? 'bg-success/10 text-success border border-success/20'
+                                ? 'bg-green-500/20 text-success border border-success/20'
                                 : isWrongSelection
-                                ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                                : 'bg-muted/50'
+                                ? 'bg-red-400/20 text-destructive border border-destructive/20'
+                                : 'bg-white/50'
                             }`}
                           >
                             <span className="font-semibold">{key}.</span> {value}
@@ -135,7 +135,7 @@ const ExamResults = ({ questions, answers, score, onRetakeExam, onBackToSelectio
                     </div>
 
                     {question.explanation && (
-                        <div className="mt-3 p-3 bg-info/10 text-info border border-info/20 rounded">
+                        <div className="mt-3 p-3 bg-blue-500/10 text-info border border-info/20 rounded">
                           <p className="text-sm">
                             <strong>Explanation:</strong> {question.explanation}
                           </p>
