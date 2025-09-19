@@ -31,7 +31,7 @@ const Navigation = ({ user, currentView, onViewChange, onLogout }: NavigationPro
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <h1 className="text-xl font-bold text-foreground">Exam Platform</h1>
-            <div className="hidden md:flex space-x-4">
+            <div className="flex space-x-2 md:space-x-4 overflow-x-auto">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -39,10 +39,10 @@ const Navigation = ({ user, currentView, onViewChange, onLogout }: NavigationPro
                     key={item.id}
                     variant={currentView === item.id ? "default" : "ghost"}
                     onClick={() => onViewChange(item.id)}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-1 md:space-x-2 whitespace-nowrap text-xs md:text-sm px-2 md:px-3"
                   >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <Icon className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">{item.label}</span>
                   </Button>
                 );
               })}

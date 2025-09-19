@@ -27,13 +27,36 @@ interface ExamSession {
 }
 
 const Index = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('examPlatformUser');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      const loginTime = localStorage.getItem('examPlatformLoginTime');
+      if (loginTime && Date.now() - parseInt(loginTime) < 24 * 60 * 60 * 1000) {
+        return parsedUser;
+      }
+      localStorage.removeItem('examPlatformUser');
+      localStorage.removeItem('examPlatformLoginTime');
+    }
+    return null;
+  });
+  
   const [currentView, setCurrentView] = useState('dashboard');
-  const [examSession, setExamSession] = useState<ExamSession | null>(null);
-  const [examState, setExamState] = useState<'selection' | 'taking' | 'results'>('selection');
+  
+  const [examSession, setExamSession] = useState<ExamSession | null>(() => {
+    const savedSession = localStorage.getItem('examPlatformSession');
+    return savedSession ? JSON.parse(savedSession) : null;
+  });
+  
+  const [examState, setExamState] = useState<'selection' | 'taking' | 'results'>(() => {
+    const savedState = localStorage.getItem('examPlatformState');
+    return savedState ? savedState as 'selection' | 'taking' | 'results' : 'selection';
+  });
 
   const handleLogin = (userData: User) => {
     setUser(userData);
+    localStorage.setItem('examPlatformUser', JSON.stringify(userData));
+    localStorage.setItem('examPlatformLoginTime', Date.now().toString());
     // All users are admin now, so always show admin dashboard
     setCurrentView('dashboard');
   };
@@ -45,34 +68,46 @@ const Index = () => {
       await supabase.auth.signOut();
     }
     
+    // Clear user session but keep exam session
+    localStorage.removeItem('examPlatformUser');
+    localStorage.removeItem('examPlatformLoginTime');
+    
     setUser(null);
     setCurrentView('dashboard');
-    setExamSession(null);
-    setExamState('selection');
+    // Don't clear exam session - keep it for when user logs back in
   };
 
   const handleStartExam = (categoryId: string, questionCount: number) => {
-    setExamSession({ categoryId, questionCount });
+    const newSession = { categoryId, questionCount };
+    setExamSession(newSession);
     setExamState('taking');
+    localStorage.setItem('examPlatformSession', JSON.stringify(newSession));
+    localStorage.setItem('examPlatformState', 'taking');
   };
 
   const handleExamComplete = (results: { questions: any[]; answers: Record<string, string[]>; score: number }) => {
-    setExamSession({
+    const updatedSession = {
       ...examSession!,
       questions: results.questions,
       answers: results.answers,
       score: results.score
-    });
+    };
+    setExamSession(updatedSession);
     setExamState('results');
+    localStorage.setItem('examPlatformSession', JSON.stringify(updatedSession));
+    localStorage.setItem('examPlatformState', 'results');
   };
 
   const handleRetakeExam = () => {
     setExamState('taking');
+    localStorage.setItem('examPlatformState', 'taking');
   };
 
   const handleBackToSelection = () => {
     setExamSession(null);
     setExamState('selection');
+    localStorage.removeItem('examPlatformSession');
+    localStorage.setItem('examPlatformState', 'selection');
   };
 
   if (!user) {
@@ -123,7 +158,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navigation
         user={user}
         currentView={currentView}
