@@ -24,6 +24,10 @@ interface ExamSession {
   questions?: any[];
   answers?: Record<string, string[]>;
   score?: number;
+  // Progress tracking
+  currentQuestionIndex?: number;
+  timeLeft?: number;
+  inProgress?: boolean;
 }
 
 const Index = () => {
@@ -78,11 +82,23 @@ const Index = () => {
   };
 
   const handleStartExam = (categoryId: string, questionCount: number) => {
-    const newSession = { categoryId, questionCount };
-    setExamSession(newSession);
-    setExamState('taking');
-    localStorage.setItem('examPlatformSession', JSON.stringify(newSession));
-    localStorage.setItem('examPlatformState', 'taking');
+    // Check if there's an existing session for this category and question count
+    const existingSession = examSession;
+    if (existingSession && 
+        existingSession.categoryId === categoryId && 
+        existingSession.questionCount === questionCount && 
+        existingSession.inProgress) {
+      // Resume existing session
+      setExamState('taking');
+      localStorage.setItem('examPlatformState', 'taking');
+    } else {
+      // Start new session
+      const newSession = { categoryId, questionCount, inProgress: true };
+      setExamSession(newSession);
+      setExamState('taking');
+      localStorage.setItem('examPlatformSession', JSON.stringify(newSession));
+      localStorage.setItem('examPlatformState', 'taking');
+    }
   };
 
   const handleExamComplete = (results: { questions: any[]; answers: Record<string, string[]>; score: number }) => {
@@ -90,7 +106,8 @@ const Index = () => {
       ...examSession!,
       questions: results.questions,
       answers: results.answers,
-      score: results.score
+      score: results.score,
+      inProgress: false // Mark as completed
     };
     setExamSession(updatedSession);
     setExamState('results');
@@ -101,6 +118,23 @@ const Index = () => {
   const handleRetakeExam = () => {
     setExamState('taking');
     localStorage.setItem('examPlatformState', 'taking');
+  };
+
+  const handleSaveProgress = (progress: { currentQuestionIndex: number; timeLeft: number; answers: Record<string, string[]>; questions: any[] }) => {
+    if (examSession) {
+      const updatedSession = {
+        ...examSession,
+        currentQuestionIndex: progress.currentQuestionIndex,
+        timeLeft: progress.timeLeft,
+        answers: progress.answers,
+        questions: progress.questions,
+        inProgress: true
+      };
+      setExamSession(updatedSession);
+      localStorage.setItem('examPlatformSession', JSON.stringify(updatedSession));
+    }
+    setExamState('selection');
+    localStorage.setItem('examPlatformState', 'selection');
   };
 
   const handleBackToSelection = () => {
@@ -124,8 +158,14 @@ const Index = () => {
             categoryId={examSession.categoryId}
             questionCount={examSession.questionCount}
             onComplete={handleExamComplete}
-            onBack={handleBackToSelection}
+            onBack={handleSaveProgress}
             userId={parseInt(user.id)}
+            savedProgress={examSession.inProgress ? {
+              currentQuestionIndex: examSession.currentQuestionIndex || 0,
+              timeLeft: examSession.timeLeft,
+              answers: examSession.answers || {},
+              questions: examSession.questions || []
+            } : undefined}
           />
         );
       } else if (examState === 'results' && examSession) {

@@ -172,7 +172,22 @@ const ExamSelection = ({ onStartExam }: ExamSelectionProps) => {
             </div>
 
             <Button onClick={handleStartExam} className="w-full" size="lg">
-              Start Exam
+              {(() => {
+                const savedSession = localStorage.getItem('examPlatformSession');
+                if (savedSession) {
+                  try {
+                    const session = JSON.parse(savedSession);
+                    if (session.categoryId === selectedCategory && 
+                        session.questionCount === parseInt(selectedLength) && 
+                        session.inProgress) {
+                      return "Resume Exam";
+                    }
+                  } catch (e) {
+                    // If parsing fails, just show start exam
+                  }
+                }
+                return "Start Exam";
+              })()}
             </Button>
           </CardContent>
         </Card>

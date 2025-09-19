@@ -18,20 +18,29 @@ interface ExamInterfaceProps {
   categoryId: string;
   questionCount: number;
   onComplete: (results: { questions: Question[]; answers: Record<string, string[]>; score: number }) => void;
-  onBack: () => void;
+  onBack: (progress: { currentQuestionIndex: number; timeLeft: number; answers: Record<string, string[]>; questions: Question[] }) => void;
   userId?: number;
+  savedProgress?: {
+    currentQuestionIndex: number;
+    timeLeft?: number;
+    answers: Record<string, string[]>;
+    questions: Question[];
+  };
 }
 
-const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId = 1 }: ExamInterfaceProps) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
-  const [timeLeft, setTimeLeft] = useState(questionCount === 20 ? 2400 : 6000);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
+const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId = 1, savedProgress }: ExamInterfaceProps) => {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(savedProgress?.currentQuestionIndex || 0);
+  const [answers, setAnswers] = useState<Record<string, string[]>>(savedProgress?.answers || {});
+  const [timeLeft, setTimeLeft] = useState(savedProgress?.timeLeft || (questionCount === 20 ? 2400 : 6000));
+  const [questions, setQuestions] = useState<Question[]>(savedProgress?.questions || []);
+  const [loading, setLoading] = useState(!savedProgress || savedProgress.questions.length === 0);
 
   useEffect(() => {
-    fetchQuestions();
-  }, [categoryId, questionCount]);
+    // Only fetch questions if we don't have saved progress with questions
+    if (!savedProgress || savedProgress.questions.length === 0) {
+      fetchQuestions();
+    }
+  }, [categoryId, questionCount, savedProgress]);
 
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -187,12 +196,20 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
         <Card>
           <CardContent className="p-8 text-center">
             <div className="text-lg">No questions available for this category.</div>
-            <Button onClick={onBack} className="mt-4">Back to Selection</Button>
+            <Button onClick={() => onBack({ currentQuestionIndex: 0, timeLeft: 0, answers: {}, questions: [] })} className="mt-4">Back to Selection</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
+
+  const handleBackClick = () => {
+    onBack({ currentQuestionIndex, timeLeft, answers, questions });
+  };
+
+  const handleEmptyBack = () => {
+    onBack({ currentQuestionIndex: 0, timeLeft: 0, answers: {}, questions: [] });
+  };
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -204,7 +221,11 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2">
+              <Button 
+                variant="ghost" 
+                onClick={handleBackClick}
+                className="flex items-center space-x-2"
+              >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Back</span>
               </Button>
