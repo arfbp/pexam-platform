@@ -12,6 +12,9 @@ interface Question {
   choices: { A: string; B: string; C: string; D: string; E?: string; F?: string };
   correctChoice: string; // Can be multiple letters like "ABC" or "BD"
   explanation: string;
+  originalChoices?: { A: string; B: string; C: string; D: string; E?: string; F?: string };
+  originalCorrectChoice?: string;
+  choiceMapping?: Record<string, string>; // Maps randomized letters to original letters
 }
 
 interface ExamInterfaceProps {
@@ -75,7 +78,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
 
       const formattedQuestions: Question[] = selectedQuestions.map(q => {
         const dbRecord = q as any; // Type assertion to access choice_e and choice_f
-        const choices: { A: string; B: string; C: string; D: string; E?: string; F?: string } = {
+        const originalChoices: { A: string; B: string; C: string; D: string; E?: string; F?: string } = {
           A: q.choice_a,
           B: q.choice_b,
           C: q.choice_c,
@@ -84,18 +87,59 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
         
         // Add E and F choices if they exist and are not empty
         if (dbRecord.choice_e && dbRecord.choice_e.trim()) {
-          choices.E = dbRecord.choice_e;
+          originalChoices.E = dbRecord.choice_e;
         }
         if (dbRecord.choice_f && dbRecord.choice_f.trim()) {
-          choices.F = dbRecord.choice_f;
+          originalChoices.F = dbRecord.choice_f;
         }
+
+        // Create array of available choice letters and their values
+        const availableChoices = Object.entries(originalChoices).filter(([, value]) => value);
+        const choiceLetters = availableChoices.map(([letter]) => letter);
+        const choiceValues = availableChoices.map(([, value]) => value);
+        
+        // Randomize the choice values but keep the same letters (A, B, C, D, etc.)
+        const shuffledValues = shuffleArray(choiceValues);
+        
+        // Create new choices object with randomized values
+        const randomizedChoices: { A: string; B: string; C: string; D: string; E?: string; F?: string } = {
+          A: '',
+          B: '',
+          C: '',
+          D: ''
+        };
+        const choiceMapping: Record<string, string> = {}; // Maps new position to original position
+        
+        choiceLetters.forEach((letter, index) => {
+          (randomizedChoices as any)[letter] = shuffledValues[index];
+          // Find which original choice this value came from
+          const originalIndex = choiceValues.indexOf(shuffledValues[index]);
+          const originalLetter = choiceLetters[originalIndex];
+          choiceMapping[letter] = originalLetter;
+        });
+
+        // Map the correct answer to the new positions
+        const originalCorrectChoice = q.correct_answer;
+        let newCorrectChoice = '';
+        for (const correctLetter of originalCorrectChoice) {
+          // Find which new letter position has the original correct choice value
+          const newLetter = Object.entries(choiceMapping).find(([, orig]) => orig === correctLetter)?.[0];
+          if (newLetter) {
+            newCorrectChoice += newLetter;
+          }
+        }
+        // Sort the correct choice letters for consistency
+        newCorrectChoice = newCorrectChoice.split('').sort().join('');
 
         return {
           id: q.id.toString(),
           questionText: q.question_text,
-          choices,
-          correctChoice: q.correct_answer,
-          explanation: q.explanation || ''
+          choices: randomizedChoices,
+          correctChoice: newCorrectChoice,
+          explanation: q.explanation || '',
+          originalChoices,
+          originalCorrectChoice,
+          choiceMapping
         };
       });
 
@@ -134,13 +178,27 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
   };
 
   const handleSubmitExam = async () => {
+    // Map answers back to original choice letters for scoring and saving
+    const originalAnswers: Record<string, string[]> = {};
+    
     const score = questions.reduce((total, question) => {
-      const userAnswer = (answers[question.id] || []).join('');
-      const correctAnswer = question.correctChoice;
-      return total + (userAnswer === correctAnswer ? 1 : 0);
+      const userRandomizedAnswer = answers[question.id] || [];
+      
+      // Map the randomized answers back to original letters
+      const userOriginalAnswer = userRandomizedAnswer
+        .map(randomizedLetter => question.choiceMapping?.[randomizedLetter] || randomizedLetter)
+        .sort();
+      
+      originalAnswers[question.id] = userOriginalAnswer;
+      
+      // Score against the original correct answer
+      const originalCorrectAnswer = question.originalCorrectChoice || question.correctChoice;
+      const userAnswerString = userOriginalAnswer.join('');
+      
+      return total + (userAnswerString === originalCorrectAnswer ? 1 : 0);
     }, 0);
 
-    // Save exam result to database
+    // Save exam result to database with original answer mapping
     try {
       const { error } = await supabase
         .from('exam_results')
@@ -149,7 +207,7 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
           score,
           total_questions: questions.length,
           question_count: questionCount,
-          answers_data: answers
+          answers_data: originalAnswers
         });
 
       if (error) {
@@ -159,7 +217,16 @@ const ExamInterface = ({ categoryId, questionCount, onComplete, onBack, userId =
       console.error('Error saving exam result:', error);
     }
 
-    onComplete({ questions, answers, score });
+    // For the results display, we need to convert questions back to original format
+    const originalQuestions = questions.map(q => ({
+      id: q.id,
+      questionText: q.questionText,
+      choices: q.originalChoices || q.choices,
+      correctChoice: q.originalCorrectChoice || q.correctChoice,
+      explanation: q.explanation
+    }));
+
+    onComplete({ questions: originalQuestions, answers: originalAnswers, score });
   };
 
   useEffect(() => {
