@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, TrendingUp, Award, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import ExamHistoryDetail from '@/components/exam/ExamHistoryDetail';
 
 interface ExamResult {
   id: string;
@@ -15,6 +16,7 @@ interface ExamResult {
   question_count: number;
   created_at: string;
   percentage: number;
+  answers_data: any;
 }
 
 interface ResultsHistoryProps {
@@ -24,6 +26,8 @@ interface ResultsHistoryProps {
 const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
   const [results, setResults] = useState<ExamResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
+  const [examQuestions, setExamQuestions] = useState<any[]>([]);
 
   useEffect(() => {
     fetchResults();
@@ -48,7 +52,8 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
         total_questions: result.total_questions,
         question_count: result.question_count,
         created_at: new Date(result.created_at).toLocaleDateString(),
-        percentage: Math.round((result.score / result.total_questions) * 100)
+        percentage: Math.round((result.score / result.total_questions) * 100),
+        answers_data: result.answers_data
       }));
 
       setResults(formattedResults);
@@ -58,6 +63,47 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
       setLoading(false);
     }
   };
+
+  const handleViewExam = async (result: ExamResult) => {
+    try {
+      // Get the question IDs from the answers_data
+      const questionIds = Object.keys(result.answers_data || {}).map(id => parseInt(id));
+      
+      if (questionIds.length === 0) {
+        console.error('No question data found for this exam');
+        return;
+      }
+
+      // Fetch the questions for this exam
+      const { data: questions, error } = await supabase
+        .from('questions')
+        .select('*')
+        .in('id', questionIds);
+
+      if (error) {
+        console.error('Error fetching questions:', error);
+        return;
+      }
+
+      setExamQuestions(questions || []);
+      setSelectedResult(result);
+    } catch (error) {
+      console.error('Error viewing exam details:', error);
+    }
+  };
+
+  if (selectedResult && examQuestions.length > 0) {
+    return (
+      <ExamHistoryDetail
+        examResult={selectedResult}
+        questions={examQuestions}
+        onBack={() => {
+          setSelectedResult(null);
+          setExamQuestions([]);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -190,7 +236,12 @@ const ResultsHistory = ({ userId = 1 }: ResultsHistoryProps) => {
                   <TableCell>{result.created_at}</TableCell>
                   <TableCell>{getPercentageBadge(result.percentage)}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center space-x-1"
+                      onClick={() => handleViewExam(result)}
+                    >
                       <Eye className="h-4 w-4" />
                       <span>View</span>
                     </Button>
